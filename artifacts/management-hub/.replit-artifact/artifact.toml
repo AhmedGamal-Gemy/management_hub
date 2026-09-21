@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Professional Management Hub"
+description = "A unified professional workspace where teachers, freelancers, and entrepreneurs can manage their work, finances, projects, and ideas from one account."
+version = "1.0.0"
+id = "artifacts/management-hub"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 24996
+
+[services.development]
+run = "pnpm --filter @workspace/management-hub run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/management-hub", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/management-hub/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "24996"
+BASE_PATH = "/"
