@@ -9,7 +9,7 @@ branches, tags, testing, and shipping cadence.
 - `frontend/` — Next.js 14 App Router app (port 3000)
 - `backend/` — FastAPI app, AI endpoints only (port 8000)
 - `docker/` — Dockerfiles for frontend and backend
-- `docker-compose.yml` — local orchestration (frontend + backend + LiteLLM proxy)
+- `docker-compose.yml` — local orchestration (frontend + backend)
 - `litellm-config.yaml` — AI model routing (Groq free tier)
 - `reference/` — old Replit project (artifacts + lib + pnpm workspace).
   Not part of the new product; kept for data-shape and UI-pattern reference.
@@ -17,7 +17,7 @@ branches, tags, testing, and shipping cadence.
 ## Data flow
 
 - CRUD: frontend talks directly to Supabase (RLS enforces per-user access)
-- AI: frontend → FastAPI backend → LiteLLM proxy → Groq
+- AI: frontend → FastAPI backend → Groq (via the litellm package)
 
 ## Local development
 

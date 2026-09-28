@@ -13,11 +13,11 @@ The contract between all three layers is:
 **Frontend has two data paths:**
 
 - **CRUD path:** The Next.js frontend talks directly to Supabase (PostgreSQL + Auth + Storage). Row Level Security policies in the database enforce that every row belongs to its authenticated user. No custom auth middleware needed on any backend service.
-- **AI path:** The Next.js frontend sends AI requests to the FastAPI backend, which forwards them to the LiteLLM Proxy, which routes them to Groq's free-tier API. The user's identity is verified on the backend by validating the Supabase JWT token against the JWT secret.
+- **AI path:** The Next.js frontend sends AI requests to the FastAPI backend, which calls the litellm package in-process to reach Groq's free-tier API. The user's identity is verified on the backend by validating the Supabase JWT token against the JWT secret.
 
-**Backend has exactly two responsibilities:** verify the user's identity on AI requests, and proxy AI calls through LiteLLM. It does not handle CRUD, file storage, or any data operations.
+**Backend has exactly two responsibilities:** verify the user's identity on AI requests, and call the AI model via litellm. It does not handle CRUD, file storage, or any data operations.
 
-**LiteLLM Proxy is the AI contract boundary.** The frontend never knows which model is being used. The backend never knows either — they both call a single model name (e.g., `tutor-ops`) and LiteLLM routes to whatever provider is configured. Switching from Groq to Mistral to a local model requires one config change in one file and a container restart. No frontend or backend code changes.
+**The `LITELLM_MODEL` env value is the AI contract boundary.** The frontend never knows which model is being used. The backend reads one env value (e.g. `groq/llama-3.3-70b-versatile`). Switching from Groq to Mistral requires one env change and a restart. No frontend or backend code changes.
 
 **The database schema is the single source of truth for data shape.** The frontend infers types from it. The existing `openapi.yaml` in the repo is retained as a reference document for the data shapes the original app used, but is not actively maintained as a source of truth for this new product.
 
@@ -39,7 +39,7 @@ All data operations go through Supabase from the frontend. Creating a record inv
 
 ### AI behavior
 
-Two AI features exist: session note summarization and monthly financial insight. Both are triggered by an explicit button — AI never runs automatically. When triggered, the frontend sends a POST to the FastAPI backend with the user's Supabase JWT in the Authorization header. The backend validates the token, forwards the request to LiteLLM Proxy, and returns the result. The frontend displays the result in a distinctively styled card with a subtle AI badge. If the AI call fails (rate limit, network error, model unavailable), a clear error message is shown and the user can retry. Groq's free tier has rate limits — the financial insight is fetched once per page load and cached in React Query, not re-fetched on every render.
+Two AI features exist: session note summarization and monthly financial insight. Both are triggered by an explicit button — AI never runs automatically. When triggered, the frontend sends a POST to the FastAPI backend with the user's Supabase JWT in the Authorization header. The backend validates the token, calls the model via litellm, and returns the result. The frontend displays the result in a distinctively styled card with a subtle AI badge. If the AI call fails (rate limit, network error, model unavailable), a clear error message is shown and the user can retry. Groq's free tier has rate limits — the financial insight is fetched once per page load and cached in React Query, not re-fetched on every render.
 
 ### Calendar behavior (Day 4)
 
@@ -63,27 +63,24 @@ Uploading a file requests a signed upload URL from Supabase Storage, uploads dir
 
 **Current phase: local development only.** No production hosting is set up. Everything runs through Docker Compose on the developer's machine.
 
-**Local environment:** One command — `docker-compose up` — starts the frontend (port 3000), the FastAPI backend (port 8000), and the LiteLLM Proxy (port 4000). Supabase runs as a cloud project (not self-hosted). The developer only needs a `.env` file with four values: Supabase URL, Supabase anon key, Groq API key, and Supabase JWT secret.
+**Local environment:** One command — `docker-compose up` — starts the frontend (port 3000) and the FastAPI backend (port 8000). Supabase runs as a cloud project (not self-hosted).
 
 **Environment variables (see `.env.example` for the full list):**
 - `NEXT_PUBLIC_SUPABASE_URL` — the Supabase project URL
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY` — Supabase public anon key
 - `SUPABASE_JWT_SECRET` — from Supabase dashboard, used by backend to verify tokens
-- `GROQ_API_KEY` — Groq API key, passed to LiteLLM Proxy (local) or library (Replit)
+- `GROQ_API_KEY` — Groq API key, consumed by the backend via litellm
 - `BACKEND_INTERNAL_URL` — FastAPI address for Next.js `/backend/*` rewrites
 - `LITELLM_MODEL` — provider model string for Replit library mode
 
 **Deployment is dual-config (see TECHNICAL_PLAN.md section 6).**
-Local dev runs `docker-compose up` (frontend:3000, backend:8000,
-LiteLLM proxy:4000). Replit reads `.replit` + `replit.nix` instead and
+Local dev runs `docker-compose up` (frontend:3000, backend:8000). Replit reads `.replit` + `replit.nix` instead and
 exposes a single external port; the browser reaches FastAPI same-origin
-via Next.js `/backend/*` rewrites, and the backend calls LiteLLM
-in-process (no sidecar container can run on Replit).
+via Next.js `/backend/*` rewrites.
 
 **Future production deployment beyond Replit (not now, but the architecture supports it without changes):**
 - Frontend deploys to Vercel with three environment variables
-- Backend deploys to any container host (Render, Fly, Railway) with two environment variables
-- LiteLLM Proxy deploys to the same host or stays as a separate container
+- Backend deploys to any container host (Render, Fly, Railway) with three environment variables
 - Supabase project is promoted from development to production with RLS policies already in place
 - No code changes required — the same Docker Compose file scales to production services
 
@@ -98,7 +95,7 @@ in-process (no sidecar container can run on Replit).
 | **shadcn/ui** | UI component library | Accessible, composable, Tailwind-native; no runtime overhead since components are copied into the project |
 | **Tailwind CSS v4** | Styling | Plan calls for Tailwind; v4 has a simpler config and better performance |
 | **FastAPI** | Backend framework | Async-native, Pydantic validation, auto-generated OpenAPI spec, lightweight — only the AI endpoints live here |
-| **LiteLLM Proxy** | AI model router | Single config file, OpenAI-compatible API, supports 100+ providers, zero code changes when switching models |
+| **litellm (Python package)** | AI model access from the backend | One package, 100+ providers, model chosen by env value — zero code changes when switching models |
 | **Groq** | AI inference provider | Free tier, very fast inference, good quality for structured tasks like summarization and insight generation |
 | **Docker Compose** | Local orchestration | One command starts all three services; mirrors production architecture; no local Node.js or Python installation needed |
 | **TanStack React Query** | Frontend data fetching and caching | Already used in the existing codebase; handles loading, error, and cache states declaratively |
@@ -125,7 +122,7 @@ The build follows the plan's structure exactly — five chapters, one feature pe
 
 **Days 11–14 — Library and Growth:** File uploads to Supabase Storage, browse with filters, proposals CRUD and kanban board with drag-and-drop.
 
-**Days 15–20 — Lock, Polish, Launch:** Auth polish, cohesive app shell with locked design tokens, LiteLLM proxy setup, AI session summarizer, AI financial insight, full edge-case testing, final polish and local verification.
+**Days 15–20 — Lock, Polish, Launch:** Auth polish, cohesive app shell with locked design tokens, AI session summarizer, AI financial insight, full edge-case testing, final polish and local verification.
 
 Each day has a concrete deliverable that can be verified independently. Days with no design work (backend schema days) are explicitly marked so the designer/developer doesn't skip the design half on later days.
 

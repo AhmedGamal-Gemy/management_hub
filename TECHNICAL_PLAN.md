@@ -2,7 +2,7 @@
 
 ## 1. Repository Structure
 
-This is a monorepo with two production services and one proxy:
+This is a monorepo with two services:
 
 ```
 tutor-ops-dashboard/
@@ -98,7 +98,7 @@ Tags are created at the end of each **milestone** — a point where a meaningful
 | `v0.1.2` | End of Day 9 — Money Matters | Payments, budgeting split logic, visual donut, expenses with live remaining balance. Full money tracking works. |
 | `v0.1.3` | End of Day 10 — Mission Control | Dashboard home ships. Tutor can open the app and understand their business in five seconds. |
 | `v0.1.4` | End of Day 14 — Library & Growth | File uploads and browse, proposals CRUD, kanban board with drag-and-drop. Non-teaching workspace tools are complete. |
-| `v0.1.5` | End of Day 17 — AI Layer | LiteLLM proxy running, session summarizer, financial insight. AI features are live. |
+| `v0.1.5` | End of Day 17 — AI Layer | Session summarizer + financial insight live via the litellm package. AI features are live. |
 | `v0.1.6` | End of Day 20 — Production Ready | All edge cases handled, mobile verified, final polish, `docker-compose up` runs cleanly. Ready for real use. |
 
 ### When to tag
@@ -184,7 +184,7 @@ A feature is shipped when merged into `main` and tagged. At that point:
 
 **Library & Growth (tag `v0.1.4`, Day 14):** Files and proposals are fully functional. Kanban board with drag-and-drop ships.
 
-**AI Layer (tag `v0.1.5`, Day 17):** LiteLLM proxy is configured, session summarizer works, financial insight appears on dashboard.
+**AI Layer (tag `v0.1.5`, Day 17):** Session summarizer works, financial insight appears on dashboard, both via the litellm package.
 
 **Production Ready (tag `v0.1.6`, Day 20):** Edge cases handled, mobile verified, final polish applied, app is ready for real daily use.
 
@@ -209,9 +209,8 @@ are needed to switch between them.
 
 | File | Local `docker-compose up` | Replit workspace / deploy |
 |---|---|---|
-| `docker-compose.yml` | Yes — owns all three services | Ignored |
+| `docker-compose.yml` | Yes — owns both services | Ignored |
 | `docker/frontend.Dockerfile`, `docker/backend.Dockerfile` | Yes — own the runtimes | Ignored |
-| `litellm-config.yaml` | Yes — proxy model routing | Ignored (no sidecar can run) |
 | `.replit` | Ignored | Yes — run/build/deploy/ports |
 | `replit.nix` | Ignored | Yes — Node 20 + Python 3.12 runtimes |
 | `.env` (from `.env.example`) | Yes | No — Replit Secrets panel instead |
@@ -231,19 +230,13 @@ Replit deployments expose exactly one external port. The contract:
 - Both servers must bind to `0.0.0.0`, never `localhost`. The configs
   in this repo already do.
 
-### LiteLLM dual mode
+### AI via the litellm package (no sidecar)
 
-- Local: the LiteLLM proxy sidecar runs at `http://litellm:4000`.
-  `LITELLM_PROXY_URL` is set, so the backend calls the proxy with
-  logical model names (`tutor-ops`). Model routing lives in
-  `litellm-config.yaml` — changing models is config-only.
-- Replit: no sidecar container can run (`docker build` fails inside
-  workspaces; Dockerfiles are not supported). `LITELLM_PROXY_URL` is
-  unset, so the backend calls the `litellm` Python package in-process
-  with the provider string from `LITELLM_MODEL`
-  (e.g. `groq/llama-3.3-70b-versatile`). The model-switching contract
-  is preserved: one env value changes, no code changes.
-- See `backend/app/services/litellm_service.py` for the switch.
+There is no proxy container. In every environment the backend calls the
+`litellm` Python package in-process, with the provider model string from
+`LITELLM_MODEL` (e.g. `groq/llama-3.3-70b-versatile`). Switching models is
+still config-only: one env value changes, no code changes.
+See `backend/app/services/litellm_service.py`.
 
 ### CI workflow (GitHub Actions)
 

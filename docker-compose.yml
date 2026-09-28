@@ -22,18 +22,9 @@ services:
       - "8000:8000"
     environment:
       SUPABASE_JWT_SECRET: ${SUPABASE_JWT_SECRET}
-      LITELLM_PROXY_URL: http://litellm:4000
-      LITELLM_API_KEY: sk-litellm-proxy
+      GROQ_API_KEY: ${GROQ_API_KEY}
+      # No LITELLM_PROXY_URL here: without it the backend calls the
+      # litellm package in-process (library mode). See TECHNICAL_PLAN.md.
+      LITELLM_MODEL: ${LITELLM_MODEL:-groq/llama-3.3-70b-versatile}
     volumes:
       - ./backend:/app
-
-  litellm:
-    image: ghcr.io/berriai/litellm:latest
-    ports:
-      - "4000:4000"
-    volumes:
-      - ./litellm-config.yaml:/app/config.yaml
-    environment:
-      LITELLM_MASTER_KEY: sk-litellm-proxy
-      LITELLM_SALT_KEY: sk-litellm-salt
-      GROQ_API_KEY: ${GROQ_API_KEY}
