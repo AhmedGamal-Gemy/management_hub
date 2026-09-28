@@ -1,0 +1,39 @@
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: ../docker/frontend.Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: ../docker/backend.Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      SUPABASE_JWT_SECRET: ${SUPABASE_JWT_SECRET}
+      LITELLM_PROXY_URL: http://litellm:4000
+      LITELLM_API_KEY: sk-litellm-proxy
+    volumes:
+      - ./backend:/app
+
+  litellm:
+    image: ghcr.io/berriai/litellm:latest
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./litellm-config.yaml:/app/config.yaml
+    environment:
+      LITELLM_MASTER_KEY: sk-litellm-proxy
+      LITELLM_SALT_KEY: sk-litellm-salt
+      GROQ_API_KEY: ${GROQ_API_KEY}

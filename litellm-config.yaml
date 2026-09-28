@@ -1,0 +1,17 @@
+model_list:
+  - model_name: tutor-ops
+    litellm_params:
+      model: groq/llama-3.3-70b-versatile
+      api_key: os.environ/GROQ_API_KEY
+  - model_name: tutor-ops-fast
+    litellm_params:
+      model: groq/mixtral-8x7b-32768
+      api_key: os.environ/GROQ_API_KEY
+
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY
+
+router_settings:
+  routing_strategy: simple-shuffle
+  fallbacks:
+    - tutor-ops-fast
