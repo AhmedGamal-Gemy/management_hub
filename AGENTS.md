@@ -9,10 +9,12 @@
 ## Repo map
 
 - `frontend/` — Next.js App Router. CRUD goes direct to Supabase.
-  AI calls go to the backend via `NEXT_PUBLIC_API_URL`.
+  AI calls go same-origin via `/backend/*` rewrites to FastAPI.
 - `backend/` — FastAPI. AI endpoints only (`/ai/*`) plus `/healthz`.
   Verifies the Supabase JWT on protected routes.
 - `docker-compose.yml` — frontend:3000, backend:8000, litellm:4000.
+- `.replit` + `replit.nix` — Replit-native config (single external port).
+  Docker files are ignored on Replit and vice versa.
 - `litellm-config.yaml` — model routing. Changing models is config-only.
 - `reference/` — old Replit project (artifacts + lib + pnpm workspace).
   Reference only. Do not build on it.

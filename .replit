@@ -1,0 +1,23 @@
+# Replit-native config. Local Docker dev ignores this file entirely —
+# `docker-compose.yml` is the local contract. Replit reads this instead.
+# Single external port (80 -> 3000). The FastAPI backend runs on internal
+# port 8000 only; the browser never calls it directly (see
+# frontend/next.config.js rewrites and TECHNICAL_PLAN.md section 6).
+
+entrypoint = "frontend/app/page.tsx"
+
+run = "sh -c 'cd backend && uvicorn app.main:app --host 0.0.0.0 --port 8000 & cd frontend && npm run dev -- --host 0.0.0.0 --port 3000 & wait'"
+
+[deployment]
+build = "sh -c 'cd frontend && npm install && npm run build && cd ../backend && pip install -r requirements.txt'"
+run = "sh -c 'cd backend && uvicorn app.main:app --host 0.0.0.0 --port 8000 & cd frontend && npm run start -- --host 0.0.0.0 --port 3000 & wait'"
+deploymentTarget = "cloudrun"
+
+[[ports]]
+localPort = 3000
+externalPort = 80
+
+# Backend stays internal-only on purpose: deployments allow a single
+# external port. Frontend reaches it via same-origin /backend/* rewrites.
+[[ports]]
+localPort = 8000

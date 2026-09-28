@@ -1,0 +1,49 @@
+# CI runs on GitHub runners (not in Replit) on every push and PR
+# targeting main or dev. It gates merges via branch protection rules
+# (see TECHNICAL_PLAN.md section 6). Replit syncs from main, so only
+# green code reaches the workspace. There is no auto-redeploy:
+# after sync, publish manually from the Replit Deployments tab.
+
+name: CI
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+
+jobs:
+  frontend:
+    name: Frontend typecheck + build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: dummy-anon-key-for-build
+      BACKEND_INTERNAL_URL: http://localhost:8000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+      - run: npm run typecheck
+      - run: npm run build
+
+  backend:
+    name: Backend import check + config check
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - run: python -c "import app.main; print('FastAPI app imports cleanly')"
+      - name: Validate .replit TOML
+        run: python -c "import tomllib; tomllib.load(open('../.replit','rb')); print('.replit parses cleanly')"

@@ -65,13 +65,22 @@ Uploading a file requests a signed upload URL from Supabase Storage, uploads dir
 
 **Local environment:** One command — `docker-compose up` — starts the frontend (port 3000), the FastAPI backend (port 8000), and the LiteLLM Proxy (port 4000). Supabase runs as a cloud project (not self-hosted). The developer only needs a `.env` file with four values: Supabase URL, Supabase anon key, Groq API key, and Supabase JWT secret.
 
-**Environment variables (4 values total):**
+**Environment variables (see `.env.example` for the full list):**
 - `NEXT_PUBLIC_SUPABASE_URL` — the Supabase project URL
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY` — Supabase public anon key
 - `SUPABASE_JWT_SECRET` — from Supabase dashboard, used by backend to verify tokens
-- `GROQ_API_KEY` — Groq API key, passed to LiteLLM Proxy via environment
+- `GROQ_API_KEY` — Groq API key, passed to LiteLLM Proxy (local) or library (Replit)
+- `BACKEND_INTERNAL_URL` — FastAPI address for Next.js `/backend/*` rewrites
+- `LITELLM_MODEL` — provider model string for Replit library mode
 
-**Future production deployment (not now, but the architecture supports it without changes):**
+**Deployment is dual-config (see TECHNICAL_PLAN.md section 6).**
+Local dev runs `docker-compose up` (frontend:3000, backend:8000,
+LiteLLM proxy:4000). Replit reads `.replit` + `replit.nix` instead and
+exposes a single external port; the browser reaches FastAPI same-origin
+via Next.js `/backend/*` rewrites, and the backend calls LiteLLM
+in-process (no sidecar container can run on Replit).
+
+**Future production deployment beyond Replit (not now, but the architecture supports it without changes):**
 - Frontend deploys to Vercel with three environment variables
 - Backend deploys to any container host (Render, Fly, Railway) with two environment variables
 - LiteLLM Proxy deploys to the same host or stays as a separate container

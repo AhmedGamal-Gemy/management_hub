@@ -196,3 +196,110 @@ The plan ends at Day 20 with a working local application. Next steps:
 - Add custom domain
 - Share live URL with the user
 - Collect feedback and plan v1.1 based on real usage
+
+---
+
+## 6. Replit Deployment (Dual Config)
+
+Local Docker dev and Replit are two ways to run the same code. Each
+environment reads its own config and ignores the other's. No code changes
+are needed to switch between them.
+
+### Which file each environment reads
+
+| File | Local `docker-compose up` | Replit workspace / deploy |
+|---|---|---|
+| `docker-compose.yml` | Yes — owns all three services | Ignored |
+| `docker/frontend.Dockerfile`, `docker/backend.Dockerfile` | Yes — own the runtimes | Ignored |
+| `litellm-config.yaml` | Yes — proxy model routing | Ignored (no sidecar can run) |
+| `.replit` | Ignored | Yes — run/build/deploy/ports |
+| `replit.nix` | Ignored | Yes — Node 20 + Python 3.12 runtimes |
+| `.env` (from `.env.example`) | Yes | No — Replit Secrets panel instead |
+
+### Single-port serving model
+
+Replit deployments expose exactly one external port. The contract:
+
+- Next.js runs on port 3000, mapped to external port 80. This is the
+  only externally reachable service.
+- FastAPI runs on internal port 8000. It is reachable from inside the
+  workspace but never from the browser.
+- The browser calls AI endpoints same-origin at `/backend/*`. Next.js
+  rewrites (`frontend/next.config.js`) forward these server-side to
+  FastAPI using `BACKEND_INTERNAL_URL` (`http://backend:8000` in
+  docker-compose, `http://localhost:8000` on Replit).
+- Both servers must bind to `0.0.0.0`, never `localhost`. The configs
+  in this repo already do.
+
+### LiteLLM dual mode
+
+- Local: the LiteLLM proxy sidecar runs at `http://litellm:4000`.
+  `LITELLM_PROXY_URL` is set, so the backend calls the proxy with
+  logical model names (`tutor-ops`). Model routing lives in
+  `litellm-config.yaml` — changing models is config-only.
+- Replit: no sidecar container can run (`docker build` fails inside
+  workspaces; Dockerfiles are not supported). `LITELLM_PROXY_URL` is
+  unset, so the backend calls the `litellm` Python package in-process
+  with the provider string from `LITELLM_MODEL`
+  (e.g. `groq/llama-3.3-70b-versatile`). The model-switching contract
+  is preserved: one env value changes, no code changes.
+- See `backend/app/services/litellm_service.py` for the switch.
+
+### CI workflow (GitHub Actions)
+
+`.github/workflows/ci.yml` runs on GitHub runners — not inside Replit —
+on every push and every PR targeting `main` or `dev`:
+
+- `frontend` job: `npm install`, `npm run typecheck`, `npm run build`
+  (dummy Supabase env values; the scaffold builds without real keys).
+- `backend` job: `pip install -r requirements.txt`,
+  import-check `app.main`, and TOML validation of `.replit`.
+
+Recommended branch protection (set once on GitHub, Settings → Branches):
+require the CI checks to pass before merging into `main`. Since Replit
+syncs from `main`, only green code reaches the workspace.
+
+### Replit sync and publishing flow
+
+1. Work happens on `feat/*` branches, merged to `main` after CI passes.
+2. The Replit workspace has GitHub auto-sync on: merges to `main`
+   pull into the workspace automatically.
+3. Code sync is not a redeploy. After verifying in the workspace,
+   publish manually from the Deployments tab (Redeploy button).
+4. There is no supported API for GitHub Actions to trigger a Replit
+   redeploy. Fully automatic deploy-on-merge is out of scope unless a
+   DIY deploy webhook is added later.
+
+### Secrets checklist
+
+Secrets never sync between environments. All three lists must be
+maintained by hand:
+
+- Local `.env` (from `.env.example`): `NEXT_PUBLIC_SUPABASE_URL`,
+  `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_JWT_SECRET`,
+  `GROQ_API_KEY`, `BACKEND_INTERNAL_URL`, `LITELLM_MODEL`.
+- GitHub repo Settings → Secrets and variables → Actions: only what CI
+  needs (CI uses dummy Supabase values; add real ones only if tests
+  ever need them).
+- Replit workspace Secrets panel (dev) plus Deployment secrets
+  (production): Supabase URL + anon key, Supabase JWT secret, Groq API
+  key, `BACKEND_INTERNAL_URL=http://localhost:8000`, `LITELLM_MODEL`.
+  Deployment secrets are separate from workspace secrets — an app that
+  works on Run but fails on Deploy is almost always a missing
+  deployment secret.
+
+### Free-trial notes (2026)
+
+- Workspace development (editing, running, previewing) is the free
+  surface. Use it for the full 20-day build.
+- Publishing (Autoscale, Reserved VM, Static deployments) is a paid
+  surface billed on usage. Before publishing anything, check remaining
+  trial credits in the workspace and current pricing — do not assume
+  the trial covers deployments.
+- Recommended first publish target is Autoscale (scales to zero when
+  idle). Reserved VM is only justified if the app ever needs
+  always-on behavior (background jobs, persistent connections),
+  which this product does not.
+- If credits run out mid-build, nothing is lost: the GitHub repo
+  remains the source of truth and local `docker-compose up` keeps
+  working. Publishing can wait until Day 20 or later.
