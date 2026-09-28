@@ -6,24 +6,29 @@ branches, tags, testing, and shipping cadence.
 
 ## Layout
 
-- `frontend/` — Next.js 14 App Router app (port 3000)
-- `backend/` — FastAPI app, AI endpoints only (port 8000)
+- `frontend/` — Vite + React SPA (port 5173 in dev, proxies `/api`)
+- `lib/` — `api-spec/openapi.yaml` (REST contract) + generated
+  React Query client (`api-client-react`) and Zod schemas (`api-zod`)
+- `backend/` — FastAPI app (port 8000): `/api/*` per the contract,
+  `/ai/*`, `/healthz`; serves the built SPA when `FRONTEND_DIST` is set
 - `docker/` — Dockerfiles for frontend and backend
-- `docker-compose.yml` — local orchestration (frontend + backend)
-- `litellm-config.yaml` — AI model routing (Groq free tier)
-- `reference/` — old Replit project (artifacts + lib + pnpm workspace).
-  Not part of the new product; kept for data-shape and UI-pattern reference.
+- `docker-compose.yml` — local orchestration (frontend + backend + postgres)
+- `reference/` — old Replit project (Express api-server, Drizzle schema).
+  Not part of the new product; kept as the shape/behavior reference.
 
 ## Data flow
 
-- CRUD: frontend talks directly to Supabase (RLS enforces per-user access)
+- App: browser → Vite SPA → same-origin `/api/*` → FastAPI → Postgres
+- Auth: Clerk (session cookie, verified by the backend via JWKS;
+  every query scoped by owner id, mirroring the original app)
 - AI: frontend → FastAPI backend → Groq (via the litellm package)
 
 ## Local development
 
-1. Copy `.env.example` to `.env` and fill in the four values.
-2. Run `docker-compose up`.
-3. Open `http://localhost:3000`.
+1. Copy `.env.example` to `.env` and fill in the values
+   (Clerk key and Postgres password at minimum).
+2. Run `docker compose up --build`.
+3. Open `http://localhost:5173` and sign in.
 
 ## Docs
 

@@ -1,0 +1,13 @@
+{
+  "name": "tutor-ops-dashboard",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@9.15.0",
+  "scripts": {
+    "typecheck": "tsc --build tsconfig.json",
+    "frontend": "pnpm --filter @workspace/management-hub run dev"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.3"
+  }
+}

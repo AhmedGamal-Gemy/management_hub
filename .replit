@@ -1,23 +1,20 @@
 # Replit-native config. Local Docker dev ignores this file entirely —
 # `docker-compose.yml` is the local contract. Replit reads this instead.
-# Single external port (80 -> 3000). The FastAPI backend runs on internal
-# port 8000 only; the browser never calls it directly (see
-# frontend/next.config.js rewrites and TECHNICAL_PLAN.md section 6).
 
-entrypoint = "frontend/app/page.tsx"
+entrypoint = "frontend/src/main.tsx"
 
-run = "sh -c 'cd backend && uvicorn app.main:app --host 0.0.0.0 --port 8000 & cd frontend && npm run dev -- --hostname 0.0.0.0 --port 3000 & wait'"
+# Dev: FastAPI on internal 8000, Vite dev on 5173 (external 80).
+# pnpm via corepack (workspace:* deps require pnpm, npm cannot resolve them).
+run = "sh -c 'corepack enable && pnpm install && (cd backend && exec uvicorn app.main:app --host 0.0.0.0 --port 8000) & (cd frontend && exec env PORT=5173 BASE_PATH=/ API_PROXY_TARGET=http://localhost:8000 pnpm run dev) & wait'"
 
 [deployment]
-build = "sh -c 'cd frontend && npm install && npm run build && cd ../backend && pip install -r requirements.txt'"
-run = "sh -c 'cd backend && uvicorn app.main:app --host 0.0.0.0 --port 8000 & cd frontend && npm run start -- --hostname 0.0.0.0 --port 3000 & wait'"
+build = "sh -c 'corepack enable && pnpm install && cd frontend && PORT=5173 BASE_PATH=/ pnpm run build && cd ../backend && pip install -r requirements.txt'"
+run = "sh -c 'cd backend && exec env FRONTEND_DIST=../frontend/dist/public uvicorn app.main:app --host 0.0.0.0 --port 5173'"
 deploymentTarget = "cloudrun"
 
+# Single external port by design. Dev serves Vite on 5173; deploy serves
+# FastAPI on 5173, which also serves the built SPA (see FRONTEND_DIST in
+# backend/app/main.py). Backend :8000 stays internal-only on purpose.
 [[ports]]
-localPort = 3000
+localPort = 5173
 externalPort = 80
-
-# Backend stays internal-only on purpose: deployments allow a single
-# external port. Frontend reaches it via same-origin /backend/* rewrites.
-[[ports]]
-localPort = 8000

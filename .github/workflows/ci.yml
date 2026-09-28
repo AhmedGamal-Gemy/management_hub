@@ -14,23 +14,23 @@ on:
 
 jobs:
   frontend:
-    name: Frontend typecheck + build
+    name: Frontend install + typecheck + build
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: frontend
-    env:
-      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: dummy-anon-key-for-build
-      BACKEND_INTERNAL_URL: http://localhost:8000
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: npm install
-      - run: npm run typecheck
-      - run: npm run build
+          cache: pnpm
+      - run: pnpm install
+      - run: pnpm run typecheck
+      - run: pnpm --filter @workspace/management-hub run build
+        env:
+          PORT: 5173
+          BASE_PATH: /
 
   backend:
     name: Backend import check + config check

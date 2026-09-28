@@ -1,7 +1,16 @@
+# Workspace-aware dev image. Build context is the REPO ROOT
+# (see docker-compose.yml), not ./frontend.
 FROM node:20-alpine
+RUN corepack enable
 WORKDIR /app
-COPY package.json ./
-RUN npm install
-COPY . .
-EXPOSE 3000
-CMD ["npm", "run", "dev", "--", "--hostname", "0.0.0.0", "--port", "3000"]
+COPY package.json pnpm-workspace.yaml ./
+COPY frontend/package.json ./frontend/
+COPY lib/api-client-react/package.json ./lib/api-client-react/
+COPY lib/api-zod/package.json ./lib/api-zod/
+COPY lib/api-spec/package.json ./lib/api-spec/
+RUN pnpm install
+COPY frontend ./frontend
+COPY lib ./lib
+EXPOSE 5173
+# PORT / BASE_PATH / API_PROXY_TARGET arrive via compose environment.
+CMD ["pnpm", "--filter", "@workspace/management-hub", "run", "dev"]

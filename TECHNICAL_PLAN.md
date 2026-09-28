@@ -6,13 +6,14 @@ This is a monorepo with two services:
 
 ```
 tutor-ops-dashboard/
-├── frontend/          ← Next.js app (port 3000)
-├── backend/           ← FastAPI app (port 8000)
-├── docker-compose.yml
-├── .env.example
-├── PLAN.md
-├── TECHNICAL_PLAN.md
-└── README.md
+├── frontend/          ← Vite + React SPA (built product UI)
+├── lib/               ← api-spec, api-client-react, api-zod
+├── backend/           ← FastAPI (port 8000)
+├── docker/            ← Dockerfiles
+├── docker-compose.yml ← frontend:5173, backend:8000, db:postgres
+├── .replit/.nix       ← Replit-native config
+├── PLAN.md / TECHNICAL_PLAN.md / README.md / AGENTS.md
+└── reference/         ← old Express project (reference only)
 ```
 
 The frontend and backend are separate deployable units but live in one repo for development convenience. Each can be split into its own GitHub repo later without changing any code.
@@ -33,12 +34,10 @@ All branches follow the pattern: `type/short-description`
 - `docs/` — documentation only
 
 **Examples:**
-- `feat/scaffold-monorepo`
-- `feat/auth-login-signup`
-- `feat/students-crud`
-- `feat/sessions-calendar`
+- `feat/backend-students-sessions`
+- `feat/backend-overview-activity`
 - `feat/ai-session-summarizer`
-- `fix/payment-overdue-flag`
+- `fix/proposal-mark-won`
 
 ### Main branch
 
@@ -46,29 +45,21 @@ All branches follow the pattern: `type/short-description`
 
 ### Feature branches
 
-Each day of the 20-day plan ships as a feature branch, named after what it delivers rather than the day number:
+The UI is built — branches deliver backend work, named after the domain
+they implement, verified by driving the existing pages against them:
 
 ```
-Day 1:  feat/scaffold-monorepo
-Day 2:  feat/auth-login-signup
-Day 3:  feat/students-crud
-Day 4:  feat/sessions-calendar
-Day 5:  feat/payments-schema
-Day 6:  feat/payments-ui-status
-Day 7:  feat/budget-split-logic
-Day 8:  feat/budget-visual-split
-Day 9:  feat/expenses-log
-Day 10: feat/dashboard-home
-Day 11: feat/content-library-upload
-Day 12: feat/content-library-browse
-Day 13: feat/proposals-schema
-Day 14: feat/proposals-kanban
-Day 15: feat/auth-polish-routes
-Day 16: feat/app-shell-design-system
-Day 17: feat/ai-litemm-setup-summarizer
-Day 18: feat/ai-financial-insight
-Day 19: feat/testing-edge-cases
-Day 20: feat/final-polish-verify
+feat/backend-db-owner-scope      ← schema + DB session + owner dependency
+feat/backend-students-sessions   ← students + sessions CRUD
+feat/backend-curricula           ← curricula CRUD
+feat/backend-freelance           ← projects, proposals, time entries, expenses
+feat/backend-build               ← ideas, ventures, files
+feat/backend-overview-activity   ← overview + activity aggregates
+feat/backend-storage-uploads     ← signed-upload flow
+feat/ai-session-summarizer       ← /ai/summarize-session, wired to UI button
+feat/ai-financial-insight        ← /ai/financial-insight on the dashboard
+feat/testing-edge-cases          ← full walkthrough, no new endpoints
+feat/final-polish-verify         ← mobile, titles, deploy verification
 ```
 
 ### Merge rule
@@ -86,7 +77,7 @@ Merges use **squash merge** to keep `main` history linear. Commit message format
 
 ### Milestone tags only
 
-Tags are created at the end of each **milestone** — a point where a meaningful slice of the product is complete and usable on its own. There are six milestones across the 20 days.
+Tags are created at the end of each **milestone** — a point where a meaningful slice of the product is complete and usable on its own. There are six milestones. Each one is verified by clicking through the built UI against the new backend.
 
 **Tag format:** `v0.1.{N}`
 
@@ -94,12 +85,12 @@ Tags are created at the end of each **milestone** — a point where a meaningful
 
 | Tag | Trigger | What's complete |
 |---|---|---|
-| `v0.1.1` | End of Day 4 — Foundation | Students CRUD, sessions with calendar, auth flow. The core CRUD loop works. This is the minimum viable product. |
-| `v0.1.2` | End of Day 9 — Money Matters | Payments, budgeting split logic, visual donut, expenses with live remaining balance. Full money tracking works. |
-| `v0.1.3` | End of Day 10 — Mission Control | Dashboard home ships. Tutor can open the app and understand their business in five seconds. |
-| `v0.1.4` | End of Day 14 — Library & Growth | File uploads and browse, proposals CRUD, kanban board with drag-and-drop. Non-teaching workspace tools are complete. |
-| `v0.1.5` | End of Day 17 — AI Layer | Session summarizer + financial insight live via the litellm package. AI features are live. |
-| `v0.1.6` | End of Day 20 — Production Ready | All edge cases handled, mobile verified, final polish, `docker-compose up` runs cleanly. Ready for real use. |
+| `v0.1.1` | DB + owner scope | Postgres schema ported, FastAPI on the database, Clerk session → owner id on every query. Students page loads real rows. |
+| `v0.1.2` | Teaching backend | Students, sessions, curricula, income rollups all served. Teaching pages fully work. |
+| `v0.1.3` | Freelance + build backend | Projects, proposals, expenses, ideas, ventures, files served. Overview and activity aggregates live. Whole app works end to end. |
+| `v0.1.4` | Storage uploads | Signed-upload flow works against the backend's object store; venture attachments persist. |
+| `v0.1.5` | AI layer | Session summarizer + financial insight live via litellm, wired to UI buttons with error states. |
+| `v0.1.6` | Production ready | Edge cases handled, mobile verified, Replit deploy verified, `docker compose up --build` runs cleanly. Ready for real use. |
 
 ### When to tag
 
@@ -122,27 +113,24 @@ Checking out a tag gives you the exact state of the product at that milestone. T
 
 Testing is manual and lightweight. There is no automated test suite. Testing means running through the shipped feature and adjacent features to confirm nothing is broken.
 
-### Daily verification (before merging any feature branch)
+### Verification (before merging any feature branch)
 
-- [ ] `docker-compose up` starts all three services without errors
-- [ ] The new feature works as described
-- [ ] Previously shipped features still work (smoke test)
-- [ ] Navigation between pages works
-- [ ] Sign up → log in → dashboard flow works
-- [ ] Log out and back in preserves data
+- [ ] `docker compose up --build` starts frontend, backend, and db without errors
+- [ ] The new endpoints work as described, driven through the real UI pages
+- [ ] Previously shipped pages still work (smoke test)
+- [ ] Sign up → log in → dashboard flow works; log out and back in preserves data
 - [ ] Empty states appear on empty list pages
-- [ ] Error states are visible (e.g., submit an empty form)
+- [ ] Error states are visible (e.g., stop the backend, watch the UI degrade cleanly)
 
-### Day 19 — Full walkthrough
+### Full walkthrough (before the production-ready tag)
 
-Day 19 has no new feature. Its sole purpose is a complete walkthrough of every feature in the product:
-- Create, edit, delete a student
-- Add a session, view it on the calendar, mark it taught
-- Enter income, verify budget split, log an expense, watch remaining balance update
-- Upload a file, find it in browse, filter by subject
-- Create a proposal, drag it across every status column
-- Trigger AI summarization, verify output saves to session
-- Trigger AI financial insight, verify output appears on dashboard
+A complete pass over every page in the product:
+- Create, edit, delete a student; search filters the list
+- Plan a session, mark it taught, check the income rollups move
+- Add and review-flag curriculum entries
+- Create, advance, and delete freelance projects, proposals, expenses
+- Capture, advance, and delete ideas and ventures; attach a file to a venture
+- Trigger AI summarization and financial insight; force a failure and retry
 - Test every empty state and every error path
 - Resize browser to mobile width, verify every page
 
@@ -151,48 +139,47 @@ Day 19 has no new feature. Its sole purpose is a complete walkthrough of every f
 - Load testing or performance benchmarks
 - Cross-browser testing beyond Chrome
 - Formal accessibility auditing
-- Security penetration testing (RLS policies are trusted by design)
+- Security penetration testing (Clerk sessions verified server-side on every call)
 - Automated regression tests
 
 ---
 
 ## 5. Feature Shipping Cadence
 
-### Daily cadence
+### Cadence
 
-Each day is a complete mini-sprint:
-- Start: branch off `main` with `feat/` branch
-- Build: implement the feature, verify it works in isolation
-- End: merge to `main`, create milestone tag if this day completes a chapter
+Each branch is a complete mini-sprint:
+- Start: branch off `main` with a `feat/` branch
+- Build: implement the backend domain, verify it through the real UI pages
+- End: merge to `main`, create the milestone tag when a milestone completes
 
-There is no "almost done" state carried across days. If a day's feature isn't complete, the day extends and the overall timeline shifts. The 20-day plan is a guide, not a deadline.
+There is no "almost done" state carried across branches. If a domain isn't complete, the branch stays open and the timeline shifts.
 
 ### What "shipped" means
 
-A feature is shipped when merged into `main` and tagged. At that point:
-- `docker-compose up` produces a working app with that feature present
-- The feature is usable by the end user without developer intervention
-- All previously shipped features remain intact
+A feature is shipped when merged into `main` (and tagged at milestones). At that point:
+- `docker compose up --build` produces a working app with that backend domain live
+- The existing UI pages covering that domain work end to end without developer intervention
+- All previously shipped domains remain intact
 
 ### Milestone definitions
 
-**Foundation (tag `v0.1.1`, Day 4):** Students and sessions both work. Calendar is functional. Core CRUD loop is proven.
+**DB + owner scope (tag `v0.1.1`):** Schema ported, FastAPI on Postgres, Clerk session → owner id enforced. Students page loads real rows.
 
-**Money (tag `v0.1.2`, Day 9):** Payments, budgeting, and expenses all function. Income tracking and category balances are live.
+**Teaching backend (tag `v0.1.2`):** Students, sessions, curricula, income rollups served. Teaching pages fully work.
 
-**Mission Control (tag `v0.1.3`, Day 10):** Dashboard home reflects real data from all tables. The tutor gets a five-second read on their business.
+**Freelance + build backend (tag `v0.1.3`):** Projects, proposals, expenses, ideas, ventures, files served; overview and activity aggregates live. Whole app works end to end.
 
-**Library & Growth (tag `v0.1.4`, Day 14):** Files and proposals are fully functional. Kanban board with drag-and-drop ships.
+**Storage uploads (tag `v0.1.4`):** Signed-upload flow works against the backend's object store; venture attachments persist.
 
-**AI Layer (tag `v0.1.5`, Day 17):** Session summarizer works, financial insight appears on dashboard, both via the litellm package.
+**AI layer (tag `v0.1.5`):** Session summarizer + financial insight live via litellm, wired to UI buttons with error states.
 
-**Production Ready (tag `v0.1.6`, Day 20):** Edge cases handled, mobile verified, final polish applied, app is ready for real daily use.
+**Production ready (tag `v0.1.6`):** Edge cases handled, mobile verified, Replit deploy verified, app is ready for real daily use.
 
-### After Day 20
+### After the build
 
-The plan ends at Day 20 with a working local application. Next steps:
-- Deploy frontend to Vercel, backend to a container host
-- Set up a production Supabase project
+The plan ends with a working local application. Next steps:
+- Verify the Replit deployment and publish
 - Add custom domain
 - Share live URL with the user
 - Collect feedback and plan v1.1 based on real usage
@@ -219,16 +206,14 @@ are needed to switch between them.
 
 Replit deployments expose exactly one external port. The contract:
 
-- Next.js runs on port 3000, mapped to external port 80. This is the
-  only externally reachable service.
-- FastAPI runs on internal port 8000. It is reachable from inside the
-  workspace but never from the browser.
-- The browser calls AI endpoints same-origin at `/backend/*`. Next.js
-  rewrites (`frontend/next.config.js`) forward these server-side to
-  FastAPI using `BACKEND_INTERNAL_URL` (`http://backend:8000` in
-  docker-compose, `http://localhost:8000` on Replit).
-- Both servers must bind to `0.0.0.0`, never `localhost`. The configs
-  in this repo already do.
+- Dev: Vite runs on port 5173 (external 80) and forwards same-origin
+  `/api/*` to FastAPI on internal port 8000 (see `server.proxy` in
+  `frontend/vite.config.ts`, driven by `API_PROXY_TARGET`).
+- Deploy: FastAPI runs on port 5173 (external 80) and serves the built
+  SPA itself from `FRONTEND_DIST` (see `backend/app/main.py`), so the
+  browser keeps calling same-origin `/api/*` with zero config change.
+- Both servers bind to `0.0.0.0`, never `localhost`. The configs in this
+  repo already do.
 
 ### AI via the litellm package (no sidecar)
 
@@ -243,8 +228,8 @@ See `backend/app/services/litellm_service.py`.
 `.github/workflows/ci.yml` runs on GitHub runners — not inside Replit —
 on every push and every PR targeting `main` or `dev`:
 
-- `frontend` job: `npm install`, `npm run typecheck`, `npm run build`
-  (dummy Supabase env values; the scaffold builds without real keys).
+- `frontend` job: `pnpm install`, typecheck and `vite build` the app
+  (dummy `PORT`/`BASE_PATH`; the build needs no real keys).
 - `backend` job: `pip install -r requirements.txt`,
   import-check `app.main`, and TOML validation of `.replit`.
 
@@ -268,15 +253,17 @@ syncs from `main`, only green code reaches the workspace.
 Secrets never sync between environments. All three lists must be
 maintained by hand:
 
-- Local `.env` (from `.env.example`): `NEXT_PUBLIC_SUPABASE_URL`,
-  `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_JWT_SECRET`,
-  `GROQ_API_KEY`, `BACKEND_INTERNAL_URL`, `LITELLM_MODEL`.
+- Local `.env` (from `.env.example`): Postgres credentials +
+  `DATABASE_URL`, `PORT`, `BASE_PATH`, `API_PROXY_TARGET`,
+  `VITE_CLERK_PUBLISHABLE_KEY`, `CLERK_JWKS_URL`, `GROQ_API_KEY`,
+  `LITELLM_MODEL`.
 - GitHub repo Settings → Secrets and variables → Actions: only what CI
-  needs (CI uses dummy Supabase values; add real ones only if tests
+  needs (CI builds with dummy values; add real ones only if tests
   ever need them).
 - Replit workspace Secrets panel (dev) plus Deployment secrets
-  (production): Supabase URL + anon key, Supabase JWT secret, Groq API
-  key, `BACKEND_INTERNAL_URL=http://localhost:8000`, `LITELLM_MODEL`.
+  (production): Clerk publishable key, Clerk JWKS URL, Postgres
+  `DATABASE_URL`, Groq API key, `LITELLM_MODEL`, plus `PORT=5173` and
+  `BASE_PATH=/` for dev runs.
   Deployment secrets are separate from workspace secrets — an app that
   works on Run but fails on Deploy is almost always a missing
   deployment secret.

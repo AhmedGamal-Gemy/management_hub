@@ -1,30 +1,47 @@
 services:
   frontend:
     build:
-      context: ./frontend
-      dockerfile: ../docker/frontend.Dockerfile
+      context: .
+      dockerfile: docker/frontend.Dockerfile
     ports:
-      - "3000:3000"
+      - "5173:5173"
     environment:
-      NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
-      BACKEND_INTERNAL_URL: http://backend:8000
+      PORT: 5173
+      BASE_PATH: /
+      API_PROXY_TARGET: http://backend:8000
+      VITE_CLERK_PUBLISHABLE_KEY: ${VITE_CLERK_PUBLISHABLE_KEY}
+      VITE_CLERK_PROXY_URL: ${VITE_CLERK_PROXY_URL:-}
     volumes:
-      - ./frontend:/app
+      - ./frontend:/app/frontend
+      - ./lib:/app/lib
       - /app/node_modules
-      - /app/.next
+      - /app/frontend/node_modules
 
   backend:
     build:
       context: ./backend
       dockerfile: ../docker/backend.Dockerfile
-    ports:
-      - "8000:8000"
+    expose:
+      - "8000"
     environment:
-      SUPABASE_JWT_SECRET: ${SUPABASE_JWT_SECRET}
+      DATABASE_URL: ${DATABASE_URL}
+      CLERK_JWKS_URL: ${CLERK_JWKS_URL}
       GROQ_API_KEY: ${GROQ_API_KEY}
-      # No LITELLM_PROXY_URL here: without it the backend calls the
-      # litellm package in-process (library mode). See TECHNICAL_PLAN.md.
       LITELLM_MODEL: ${LITELLM_MODEL:-groq/llama-3.3-70b-versatile}
     volumes:
       - ./backend:/app
+    depends_on:
+      - db
+
+  # Postgres home for the backend build-out (Days 2+). Nothing reads it yet.
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-tutor}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tutor}
+      POSTGRES_DB: ${POSTGRES_DB:-tutorops}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:

@@ -69,6 +69,15 @@ export default defineConfig({
     strictPort: true,
     host: '0.0.0.0',
     allowedHosts: true,
+    // Dev-only: forward same-origin /api/* calls to the FastAPI backend
+    // so the browser never needs a second external port. Production builds
+    // are unaffected (the backend serves the built SPA itself).
+    proxy: {
+      '/api': {
+        target: process.env.API_PROXY_TARGET || 'http://localhost:8000',
+        changeOrigin: true,
+      },
+    },
     fs: {
       strict: true,
     },
