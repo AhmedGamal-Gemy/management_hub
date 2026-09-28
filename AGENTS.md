@@ -14,7 +14,8 @@
   Verifies the Supabase JWT on protected routes.
 - `docker-compose.yml` — frontend:3000, backend:8000, litellm:4000.
 - `litellm-config.yaml` — model routing. Changing models is config-only.
-- `artifacts/` + `lib/` — reference only. Do not build on it.
+- `reference/` — old Replit project (artifacts + lib + pnpm workspace).
+  Reference only. Do not build on it.
 
 ## Rules
 

@@ -11,8 +11,8 @@ branches, tags, testing, and shipping cadence.
 - `docker/` — Dockerfiles for frontend and backend
 - `docker-compose.yml` — local orchestration (frontend + backend + LiteLLM proxy)
 - `litellm-config.yaml` — AI model routing (Groq free tier)
-- `artifacts/` + `lib/` — reference implementation from the previous project
-  (not part of the new product; kept for data-shape and UI-pattern reference)
+- `reference/` — old Replit project (artifacts + lib + pnpm workspace).
+  Not part of the new product; kept for data-shape and UI-pattern reference.
 
 ## Data flow
 
@@ -29,4 +29,4 @@ branches, tags, testing, and shipping cadence.
 
 - `PLAN.md` — vision, contracts, deployment, tools, roadmap, scope
 - `TECHNICAL_PLAN.md` — branches, tags, testing, shipping cadence
-- `SOURCE_README.md` — notes on the reference implementation
+- `reference/SOURCE_README.md` — notes on the reference implementation
