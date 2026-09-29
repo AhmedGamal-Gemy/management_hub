@@ -1,20 +1,20 @@
 # Replit-native config. Local Docker dev ignores this file entirely —
 # `docker-compose.yml` is the local contract. Replit reads this instead.
+# Runs the ORIGINAL stack (Vite + Express + Replit Postgres), same as local.
 
 entrypoint = "frontend/src/main.tsx"
 
-# Dev: FastAPI on internal 8000, Vite dev on 5173 (external 80).
+# Dev: Express API on internal 5000, Vite dev on 5173 (external 80).
 # pnpm via corepack (workspace:* deps require pnpm, npm cannot resolve them).
-run = "sh -c 'corepack enable && pnpm install && (cd backend && exec uvicorn app.main:app --host 0.0.0.0 --port 8000) & (cd frontend && exec env PORT=5173 BASE_PATH=/ API_PROXY_TARGET=http://localhost:8000 pnpm run dev) & wait'"
+run = "sh -c 'corepack enable && pnpm install && (cd backend-express && exec env PORT=5000 pnpm run dev) & (cd frontend && exec env PORT=5173 BASE_PATH=/ API_PROXY_TARGET=http://localhost:5000 pnpm run dev) & wait'"
 
 [deployment]
-build = "sh -c 'corepack enable && pnpm install && cd frontend && PORT=5173 BASE_PATH=/ pnpm run build && cd ../backend && pip install -r requirements.txt'"
-run = "sh -c 'cd backend && exec env FRONTEND_DIST=../frontend/dist/public uvicorn app.main:app --host 0.0.0.0 --port 5173'"
+build = "sh -c 'corepack enable && pnpm install && cd frontend && PORT=5173 BASE_PATH=/ pnpm run build && cd ../backend-express && pnpm run build'"
+run = "sh -c '(cd backend-express && exec env PORT=5000 pnpm run start) & (cd frontend && exec env PORT=5173 pnpm run serve) & wait'"
 deploymentTarget = "cloudrun"
 
-# Single external port by design. Dev serves Vite on 5173; deploy serves
-# FastAPI on 5173, which also serves the built SPA (see FRONTEND_DIST in
-# backend/app/main.py). Backend :8000 stays internal-only on purpose.
+# Single external port by design. Both dev and deploy serve Vite on 5173;
+# Express :5000 stays internal-only (Vite proxy forwards /api to it).
 [[ports]]
 localPort = 5173
 externalPort = 80
