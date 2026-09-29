@@ -8,32 +8,59 @@ services:
     environment:
       PORT: 5173
       BASE_PATH: /
-      API_PROXY_TARGET: http://backend:8000
+      API_PROXY_TARGET: http://express:5000
       VITE_CLERK_PUBLISHABLE_KEY: ${VITE_CLERK_PUBLISHABLE_KEY}
       VITE_CLERK_PROXY_URL: ${VITE_CLERK_PROXY_URL:-}
     volumes:
+      # Source only. lib/ is baked into the image on purpose: it holds
+      # generated code that changes rarely (regen -> rebuild images).
+      # Host lib/*/node_modules contain Windows junctions that break
+      # Linux resolution, so lib must never be bind-mounted.
       - ./frontend:/app/frontend
-      - ./lib:/app/lib
       - /app/node_modules
       - /app/frontend/node_modules
 
-  backend:
+  # FastAPI backend — PARKED. Not part of the running stack until the
+  # feature-by-feature migration starts. Left here (not in compose)
+  # so `up` boots exactly the original Replit setup: frontend+express+db.
+  # backend:
+  #   build:
+  #     context: ./backend
+  #     dockerfile: ../docker/backend.Dockerfile
+  #   expose:
+  #     - "8000"
+  #   environment:
+  #     DATABASE_URL: ${DATABASE_URL}
+  #     CLERK_JWKS_URL: ${CLERK_JWKS_URL}
+  #     GROQ_API_KEY: ${GROQ_API_KEY}
+  #     LITELLM_MODEL: ${LITELLM_MODEL:-groq/llama-3.3-70b-versatile}
+  #   volumes:
+  #     - ./backend:/app
+  #   depends_on:
+  #     - db
+
+  # Original Express API — serves /api/* exactly as on Replit.
+  express:
     build:
-      context: ./backend
-      dockerfile: ../docker/backend.Dockerfile
+      context: .
+      dockerfile: docker/backend-express.Dockerfile
     expose:
-      - "8000"
+      - "5000"
     environment:
-      DATABASE_URL: ${DATABASE_URL}
-      CLERK_JWKS_URL: ${CLERK_JWKS_URL}
-      GROQ_API_KEY: ${GROQ_API_KEY}
-      LITELLM_MODEL: ${LITELLM_MODEL:-groq/llama-3.3-70b-versatile}
+      PORT: 5000
+      NODE_ENV: development
+      DATABASE_URL: postgresql://tutor:${POSTGRES_PASSWORD:-tutor}@db:5432/${POSTGRES_DB:-tutorops}
+      CLERK_PUBLISHABLE_KEY: ${CLERK_PUBLISHABLE_KEY}
+      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY:-}
     volumes:
-      - ./backend:/app
+      # Source only (see frontend service comment about lib/).
+      - ./backend-express:/app/backend-express
+      - /app/node_modules
+      - /app/backend-express/node_modules
     depends_on:
       - db
 
-  # Postgres home for the backend build-out (Days 2+). Nothing reads it yet.
+  # Postgres. Express (via Drizzle) reads it, same as on Replit.
   db:
     image: postgres:16-alpine
     environment:

@@ -6,6 +6,7 @@
 
 packages:
   - frontend
+  - backend-express
   - lib/*
 
 catalog:

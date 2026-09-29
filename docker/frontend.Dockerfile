@@ -8,7 +8,9 @@ COPY frontend/package.json ./frontend/
 COPY lib/api-client-react/package.json ./lib/api-client-react/
 COPY lib/api-zod/package.json ./lib/api-zod/
 COPY lib/api-spec/package.json ./lib/api-spec/
-RUN pnpm install
+# Defensive: drop anything the build context may have smuggled in so pnpm
+# links this install from scratch (stale/broken links are never repaired).
+RUN rm -rf ./frontend/node_modules ./lib/*/node_modules ./node_modules && pnpm install
 COPY frontend ./frontend
 COPY lib ./lib
 EXPOSE 5173
