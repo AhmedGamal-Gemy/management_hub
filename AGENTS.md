@@ -14,16 +14,14 @@
 - `lib/` — `api-spec/openapi.yaml` (the REST contract),
   `api-client-react` (generated hooks), `api-zod` (generated schemas),
   `db` (Drizzle schema + `schema.sql` port + `db:push` script).
-- `backend-express/` — original Express API. Serves `/api/*` exactly as
+- `backend/` — original Express API. Serves `/api/*` exactly as
   on Replit. Clerk session → owner id; every query owner-scoped.
-- `backend/` — FastAPI. PARKED until the feature-by-feature migration
-  starts. Do not wire it into compose until then.
+- `backend-python/` — FastAPI. PARKED until the feature-by-feature
+  migration starts. Do not wire it into compose until then.
 - `docker-compose.yml` — frontend:5173, express:5000 (internal),
   db:postgres. This is the running stack.
 - `.replit` + `replit.nix` — Replit-native config (single external port).
   Docker files are ignored on Replit and vice versa.
-- `reference/` — leftover docs and configs from the old Replit project.
-  Reference only. Do not build on it.
 
 ## Rules
 

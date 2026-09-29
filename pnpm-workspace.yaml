@@ -1,12 +1,11 @@
-# pnpm workspace for the product code. The old Replit workspace lives on
-# under reference/ and is unrelated. Catalog pins the exact dependency set
-# the frontend was built against. Deliberately minimal and cross-platform:
-# no platform overrides, no minimum-release-age (host installs must work
-# on Windows, macOS, and Linux alike).
+# pnpm workspace for the product code. Catalog pins the exact dependency
+# set the frontend was built against. Deliberately minimal and
+# cross-platform: no platform overrides, no minimum-release-age (host
+# installs must work on Windows, macOS, and Linux alike).
 
 packages:
   - frontend
-  - backend-express
+  - backend
   - lib/*
 
 catalog:

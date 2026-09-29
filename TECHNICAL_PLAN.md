@@ -7,14 +7,14 @@ This is a monorepo with two services:
 ```
 tutor-ops-dashboard/
 ├── frontend/          ← Vite + React SPA (built product UI)
-├── backend-express/   ← Express API, serves /api/* (running stack)
+├── backend/             ← Express API, serves /api/* (running stack)
 ├── lib/               ← api-spec, api-client-react, api-zod, db
 ├── backend/           ← FastAPI (PARKED until migration starts)
-├── docker/            ← Dockerfiles
-├── docker-compose.yml ← frontend:5173, express:5000, db:postgres
-├── .replit/.nix       ← Replit-native config
+├── backend-python/     ← FastAPI, parked until migration
+├── docker/              ← Dockerfiles
+├── docker-compose.yml   ← frontend:5173, express:5000, db:postgres
+├── .replit/.nix         ← Replit-native config
 ├── PLAN.md / TECHNICAL_PLAN.md / README.md / AGENTS.md
-└── reference/         ← leftover docs and configs (reference only)
 ```
 
 The frontend and backend are separate deployable units but live in one repo for development convenience. Each can be split into its own GitHub repo later without changing any code.
@@ -198,7 +198,7 @@ are needed to switch between them.
 | File | Local `docker-compose up` | Replit workspace / deploy |
 |---|---|---|
 | `docker-compose.yml` | Yes — frontend, express, db | Ignored |
-| `docker/frontend.Dockerfile`, `docker/backend-express.Dockerfile` | Yes — own the runtimes | Ignored |
+| `docker/frontend.Dockerfile`, `docker/backend.Dockerfile` | Yes — own the runtimes | Ignored |
 | `.replit` | Ignored | Yes — run/build/deploy/ports |
 | `replit.nix` | Ignored | Yes — Node 20 + Python 3.12 runtimes |
 | `.env` (from `.env.example`) | Yes | No — Replit Secrets panel instead |
@@ -222,7 +222,7 @@ There is no proxy container. In every environment the backend calls the
 `litellm` Python package in-process, with the provider model string from
 `LITELLM_MODEL` (e.g. `groq/llama-3.3-70b-versatile`). Switching models is
 still config-only: one env value changes, no code changes.
-See `backend/app/services/litellm_service.py`.
+See `backend-python/app/services/litellm_service.py` (parked).
 
 ### CI workflow (GitHub Actions)
 

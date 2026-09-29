@@ -10,7 +10,7 @@ A single-owner command center for a tutoring business. One person logs in, sees 
 
 The product runs as the original stack, exactly as Replit ran it. The
 UI is fixed: a Vite + React single-page app in `frontend/`. The API is
-fixed: the Express server in `backend-express/`. The work ahead is a
+fixed: the Express server in `backend/`. The work ahead is a
 feature-by-feature migration of the API to FastAPI in `backend/`
 (currently parked, not in the running stack).
 

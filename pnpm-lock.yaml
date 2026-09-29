@@ -75,7 +75,7 @@ importers:
         specifier: ~5.9.3
         version: 5.9.3
 
-  backend-express:
+  backend:
     dependencies:
       '@clerk/express':
         specifier: ^2.1.69

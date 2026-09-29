@@ -7,21 +7,17 @@ branches, tags, testing, and shipping cadence.
 ## Layout
 
 - `frontend/` — Vite + React SPA (port 5173 in dev, proxies `/api`)
+- `backend/` — original Express API (port 5000): `/api/*` exactly as on Replit
+- `backend-python/` — FastAPI, parked until migration day
 - `lib/` — `api-spec/openapi.yaml` (REST contract) + generated
-  React Query client (`api-client-react`) and Zod schemas (`api-zod`)
-- `backend/` — FastAPI app (port 8000): `/api/*` per the contract,
-  `/ai/*`, `/healthz`; serves the built SPA when `FRONTEND_DIST` is set
-- `docker/` — Dockerfiles for frontend and backend
-- `docker-compose.yml` — local orchestration (frontend + backend + postgres)
-- `reference/` — old Replit project (Express api-server, Drizzle schema).
-  Not part of the new product; kept as the shape/behavior reference.
+  React Query client (`api-client-react`), Zod schemas (`api-zod`),
+  Drizzle schema + `schema.sql` (`db`)
 
 ## Data flow
 
-- App: browser → Vite SPA → same-origin `/api/*` → FastAPI → Postgres
-- Auth: Clerk (session cookie, verified by the backend via JWKS;
-  every query scoped by owner id, mirroring the original app)
-- AI: frontend → FastAPI backend → Groq (via the litellm package)
+- App: browser → Vite SPA → same-origin `/api/*` → Express → Postgres
+- Auth: Clerk (session cookie, `getAuth().userId` → owner id on every query)
+- AI: not wired yet (FastAPI + litellm parked in `backend-python/`)
 
 ## Local development
 
@@ -34,4 +30,3 @@ branches, tags, testing, and shipping cadence.
 
 - `PLAN.md` — vision, contracts, deployment, tools, roadmap, scope
 - `TECHNICAL_PLAN.md` — branches, tags, testing, shipping cadence
-- `reference/SOURCE_README.md` — notes on the reference implementation
