@@ -1,0 +1,12 @@
+# Keep the build context small and stable: host install artifacts must
+# never invalidate image layers or bloat the context.
+node_modules
+.git
+.kilo
+.env
+*.tsbuildinfo
+frontend/node_modules
+frontend/dist
+frontend/.next
+backend/__pycache__
+reference

@@ -19,8 +19,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(health.router)
-app.include_router(ai.router, dependencies=[Depends(verify_clerk_user)])
+# All API routes live under /api (matches lib/api-spec/openapi.yaml
+# `servers: /api`, which is what the generated client calls).
+app.include_router(health.router, prefix="/api")
+app.include_router(ai.router, prefix="/api", dependencies=[Depends(verify_clerk_user)])
 
 # Production SPA serving: when FRONTEND_DIST points at a built frontend
 # (frontend/dist/public), serve it on the same port as the API so a
