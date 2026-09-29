@@ -256,7 +256,7 @@ maintained by hand:
 
 - Local `.env` (from `.env.example`): Postgres credentials +
   `DATABASE_URL`, `PORT`, `BASE_PATH`, `API_PROXY_TARGET`,
-  `VITE_CLERK_PUBLISHABLE_KEY`, `CLERK_PUBLISHABLE_KEY`,
+  `VITE_CLERK_PUBLISHABLE_KEY` (shared by UI and API),
   `CLERK_SECRET_KEY`.
 - GitHub repo Settings → Secrets and variables → Actions: only what CI
   needs (CI builds with dummy values; add real ones only if tests

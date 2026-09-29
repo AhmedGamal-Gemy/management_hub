@@ -135,8 +135,8 @@ store and persist the record owner-scoped. Maximum file size is 10MB.
 **Environment variables (see `.env.example` for the full list):**
 - `PORT`, `BASE_PATH` — required by `vite.config.ts` (5173 and `/` locally)
 - `API_PROXY_TARGET` — where Vite dev forwards `/api` (`http://express:5000` in compose)
-- `VITE_CLERK_PUBLISHABLE_KEY` — Clerk key for the UI (refuses to boot without it)
-- `CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY` — Clerk keys for the Express API
+- `VITE_CLERK_PUBLISHABLE_KEY` — the one Clerk publishable key, shared by the UI and the Express API (the UI refuses to boot without it)
+- `CLERK_SECRET_KEY` — Clerk server secret for the Express API (never `VITE_`-prefixed: that would leak it to the browser)
 - `POSTGRES_USER/PASSWORD/DB`, `DATABASE_URL` — Postgres (container host is `db`)
 - `GROQ_API_KEY`, `LITELLM_MODEL`, `CLERK_JWKS_URL`, `FRONTEND_DIST` — parked FastAPI settings, unused until migration
 
