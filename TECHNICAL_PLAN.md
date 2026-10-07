@@ -5,19 +5,21 @@
 This is a monorepo with two services:
 
 ```
-tutor-ops-dashboard/
+management-hub-source/
 ├── frontend/          ← Vite + React SPA (built product UI)
-├── backend/             ← Express API, serves /api/* (running stack)
-├── lib/               ← api-spec, api-client-react, api-zod, db
-├── backend/           ← FastAPI (PARKED until migration starts)
-├── backend-python/     ← FastAPI, parked until migration
+├── backend-python/     ← FastAPI — THE BACKEND, serves /api/*
+├── backend/            ← legacy Express, landing-page scaffolding only
+├── lib/               ← api-spec, api-client-react, api-zod, db (legacy)
 ├── docker/              ← Dockerfiles
-├── docker-compose.yml   ← frontend:5173, express:5000, db:postgres
+├── docker-compose.yml   ← frontend:5173, fastapi:5000, db:postgres
+├── docs/sprint-week1/   ← current sprint design docs (Mermaid)
 ├── .replit/.nix         ← Replit-native config
 ├── PLAN.md / TECHNICAL_PLAN.md / README.md / AGENTS.md
 ```
 
-The frontend and backend are separate deployable units but live in one repo for development convenience. Each can be split into its own GitHub repo later without changing any code.
+The frontend and backend are separate deployable units but live in one
+repo for development convenience. Each can be split into its own GitHub
+repo later without changing any code.
 
 ---
 
@@ -46,21 +48,21 @@ All branches follow the pattern: `type/short-description`
 
 ### Feature branches
 
-The UI is built and the original API runs it. Branches deliver the
-migration, one domain at a time, verified by driving the existing pages
-against the new backend:
+**The backend is Python.** Branches deliver FastAPI domains in
+`backend-python/`, one at a time, verified by driving the real pages
+against the running backend:
 
 ```
-feat/backend-migrate-students-sessions ← students + sessions CRUD
-feat/backend-migrate-curricula        ← curricula CRUD
-feat/backend-migrate-freelance        ← projects, proposals, time entries, expenses
-feat/backend-migrate-build            ← ideas, ventures, files
-feat/backend-migrate-overview         ← overview + activity aggregates
-feat/backend-migrate-storage          ← signed-upload flow
-feat/ai-session-summarizer            ← /ai/summarize-session, wired to UI button
-feat/ai-financial-insight             ← /ai/financial-insight on the dashboard
-feat/testing-edge-cases               ← full walkthrough, no new endpoints
-feat/final-polish-verify              ← mobile, titles, deploy verification
+feat/data-model-tenancy-foundation  ← tenants, tenant_members, tasks, resolve_tenant, seed
+feat/tasks-crud                     ← tasks CRUD (All Work page)
+feat/universal-timer                ← POST /timer/begin + /timer/finish
+feat/daily-prioritization-today     ← Today's tasks view
+feat/courses-groups-students        ← courses, groups, students
+feat/sessions-as-tasks              ← session rows, group/student hover
+feat/session-income                 ← income_records on session finish
+feat/curriculum-file-upload         ← curriculum_files upload/list/download/delete
+feat/testing-demo-prep              ← full walkthrough, no new endpoints
+feat/final-polish-verify            ← mobile, titles, deploy verification
 ```
 
 ### Merge rule
@@ -86,10 +88,10 @@ Tags are created at the end of each **milestone** — a point where a meaningful
 
 | Tag | Trigger | What's complete |
 |---|---|---|
-| `v0.1.1` | Original stack running | `docker compose up --build` boots frontend + Express + Postgres; health and students reachable through the proxy. The app works as on Replit. |
-| `v0.1.2` | Teaching migrated | Students, sessions, curricula, income rollups served by FastAPI. Teaching pages fully work against it. |
-| `v0.1.3` | Freelance + build migrated | Projects, proposals, expenses, ideas, ventures, files served by FastAPI; overview and activity aggregates live. Express retired. |
-| `v0.1.4` | Storage uploads migrated | Signed-upload flow works against the new backend's object store; venture attachments persist. |
+| `v0.1.1` | Data model + tenancy | Schema applied to Postgres, FastAPI on Postgres, Clerk session → `tenant_id` enforced via `resolve_tenant`, seed script runs. Login shows only the user's own tenant rows. |
+| `v0.1.2` | Tasks + timer | Tasks CRUD, universal timer Begin/Finish, daily prioritization and Today's view served by FastAPI. |
+| `v0.1.3` | Courses + sessions | Courses, groups, students, sessions-as-tasks, per-student notes and assignments served by FastAPI. |
+| `v0.1.4` | Income + curriculum files | `income_records` written on session finish; curriculum file upload/list/download/delete works. |
 | `v0.1.5` | AI layer | Session summarizer + financial insight live via litellm, wired to UI buttons with error states. |
 | `v0.1.6` | Production ready | Edge cases handled, mobile verified, Replit deploy verified, `docker compose up --build` runs cleanly. Ready for real use. |
 
@@ -165,13 +167,13 @@ A feature is shipped when merged into `main` (and tagged at milestones). At that
 
 ### Milestone definitions
 
-**DB + owner scope (tag `v0.1.1`):** Schema ported, FastAPI on Postgres, Clerk session → owner id enforced. Students page loads real rows.
+**Data model + tenancy (tag `v0.1.1`):** Schema applied to Postgres, FastAPI on Postgres, Clerk session → `tenant_id` enforced via `resolve_tenant`, seed script runs.
 
-**Teaching backend (tag `v0.1.2`):** Students, sessions, curricula, income rollups served. Teaching pages fully work.
+**Tasks + timer (tag `v0.1.2`):** Tasks CRUD, timer Begin/Finish, Today's view served and fully working.
 
-**Freelance + build backend (tag `v0.1.3`):** Projects, proposals, expenses, ideas, ventures, files served; overview and activity aggregates live. Whole app works end to end.
+**Courses + sessions (tag `v0.1.3`):** Courses, groups, students, sessions-as-tasks, per-student notes and assignments served.
 
-**Storage uploads (tag `v0.1.4`):** Signed-upload flow works against the backend's object store; venture attachments persist.
+**Income + curriculum files (tag `v0.1.4`):** `income_records` written on session finish; curriculum file upload/list/download/delete works.
 
 **AI layer (tag `v0.1.5`):** Session summarizer + financial insight live via litellm, wired to UI buttons with error states.
 
@@ -197,7 +199,7 @@ are needed to switch between them.
 
 | File | Local `docker-compose up` | Replit workspace / deploy |
 |---|---|---|
-| `docker-compose.yml` | Yes — frontend, express, db | Ignored |
+| `docker-compose.yml` | Yes — frontend, fastapi, db | Ignored |
 | `docker/frontend.Dockerfile`, `docker/backend.Dockerfile` | Yes — own the runtimes | Ignored |
 | `.replit` | Ignored | Yes — run/build/deploy/ports |
 | `replit.nix` | Ignored | Yes — Node 20 + Python 3.12 runtimes |
@@ -208,11 +210,12 @@ are needed to switch between them.
 Replit deployments expose exactly one external port. The contract:
 
 - Dev: Vite runs on port 5173 (external 80) and forwards same-origin
-  `/api/*` to Express on internal port 5000 (see `server.proxy` in
+  `/api/*` to FastAPI on internal port 5000 (see `server.proxy` in
   `frontend/vite.config.ts`, driven by `API_PROXY_TARGET`).
-- Deploy: Express runs on port 5000 (internal) and `vite preview`
-  serves the built SPA on port 5173 (external 80), so the browser keeps
-  calling same-origin `/api/*` with zero config change.
+- Deploy: FastAPI runs on port 5000 (internal) and serves the built SPA
+  from `FRONTEND_DIST` on the same port, so the browser keeps calling
+  same-origin `/api/*` with zero config change (see
+  `backend-python/app/main.py`).
 - Both servers bind to `0.0.0.0`, never `localhost`. The configs in this
   repo already do.
 
@@ -222,7 +225,7 @@ There is no proxy container. In every environment the backend calls the
 `litellm` Python package in-process, with the provider model string from
 `LITELLM_MODEL` (e.g. `groq/llama-3.3-70b-versatile`). Switching models is
 still config-only: one env value changes, no code changes.
-See `backend-python/app/services/litellm_service.py` (parked).
+See `backend-python/app/services/litellm_service.py`.
 
 ### CI workflow (GitHub Actions)
 
@@ -264,8 +267,9 @@ maintained by hand:
 - Replit workspace Secrets panel (dev) plus Deployment secrets
   (production): Clerk publishable key, Clerk secret key, Postgres
   `DATABASE_URL`, plus `PORT=5173` and `BASE_PATH=/` for dev runs.
-  (Groq key, `LITELLM_MODEL`, and `CLERK_JWKS_URL` belong to the parked
-  FastAPI backend — not needed until migration.)
+  (Groq key, `LITELLM_MODEL`, and `CLERK_JWKS_URL` are read by the
+  FastAPI backend — `CLERK_JWKS_URL` is needed as soon as tenancy is
+  enforced; the Groq key and `LITELLM_MODEL` only once AI lands.)
   Deployment secrets are separate from workspace secrets — an app that
   works on Run but fails on Deploy is almost always a missing
   deployment secret.

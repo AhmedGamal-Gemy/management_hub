@@ -1,0 +1,37 @@
+%% Card 1 contract (feeds Card 3): Timer Begin/Finish state machine
+%% BACKEND IS PYTHON — FastAPI in backend-python/
+%% Endpoints: POST /api/timer/begin  {task_id}
+%%            POST /api/timer/finish {task_id}
+%% Handler: backend-python/app/routes/timer.py (Depends resolve_tenant)
+%% Works on any task type (task|session).
+%% Income is derived from actual tracked time, not scheduled duration.
+
+stateDiagram-v2
+  [*] --> idle: task.remaining = estimate\nactive_started_at = null
+
+  idle --> running: POST /api/timer/begin\nactive_started_at = NOW()\nINSERT time_entries open row
+
+  running --> idle: POST /api/timer/finish\nelapsed = NOW() - active_started_at\nremaining -= elapsed\nclose time_entries row
+
+  running --> conflict: POST /api/timer/begin\n409 already running
+  conflict --> running: (no-op)
+
+  idle --> guardFail: POST /api/timer/finish\nno active timer\n409 nothing to finish
+  guardFail --> idle: (no-op)
+
+  idle --> done: remaining <= 0\nmark Complete
+  done --> incomeHook: type = session?\nSUM(time_entries.duration x hourly_rate)\nINSERT income_records row
+  incomeHook --> [*]
+  done --> [*]: type = task\n(no income rule)
+
+  
+
+  note right of running
+    Week 1: no pause / no task-switch
+    Edge cases deferred to Card 3
+  end note
+
+  note right of incomeHook
+    Income = actual tracked time, not scheduled\nTimer is the source of truth
+    Feeds Card 7 directly
+  end note
