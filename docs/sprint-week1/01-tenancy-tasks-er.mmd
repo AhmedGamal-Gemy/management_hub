@@ -1,0 +1,102 @@
+%% Card 1: Data model + multi-tenancy — proposed ER
+%% Source: Trello "Work Tracker – Week 1 Sprint" / In Progress
+%% BACKEND IS PYTHON — FastAPI in backend-python/. These tables are queried
+%% from backend-python/app/ (SQLAlchemy), NOT the legacy Express backend/.
+%% Shared helper lives at backend-python/app/middleware/tenancy.py
+%% (replaces ownerFor()/withOwner() in backend/src/routes/management.ts).
+erDiagram
+  tenants ||--o{ tenant_members : has
+  tenants ||--o{ courses : owns
+  tenants ||--o{ groups : owns
+  tenants ||--o{ tasks : owns
+  tenants ||--o{ students : owns
+  courses ||--o{ groups : contains
+  groups ||--o{ group_students : has
+  students ||--o{ group_students : belongs
+  groups ||--o{ tasks : "session for"
+  tasks ||--o{ time_entries : logs
+  tasks ||--o{ income_records : "generates"
+  courses ||--o{ curriculum_files : has
+
+  tenants {
+    text id PK "e.g. tn_123"
+    text name
+    timestamptz created_at
+  }
+  tenant_members {
+    text tenant_id FK
+    text user_id "Clerk userId"
+    text role "admin|member"
+  }
+  courses {
+    int id PK
+    text tenant_id FK
+    text name
+    numeric hourly_rate
+  }
+  groups {
+    int id PK
+    text tenant_id FK
+    int course_id FK
+    text name
+  }
+  group_students {
+    int group_id FK
+    int student_id FK
+  }
+  students {
+    int id PK
+    text tenant_id FK
+    text name
+    text parent_name
+    text phone
+    text email
+    int age
+    text grade
+    text status
+    timestamptz created_at
+  }
+  time_entries {
+    int id PK
+    text tenant_id FK
+    int task_id FK
+    date entry_date
+    numeric duration
+    numeric hourly_rate
+    numeric calculated_cost
+    text description
+  }
+  tasks {
+    int id PK
+    text tenant_id FK
+    text title
+    text type "task|session"
+    numeric estimate
+    date deadline
+    text source "curriculum|freelance|personal"
+    text importance
+    text status
+    int group_id FK "only if session"
+    timestamptz start_at
+    timestamptz end_at
+    numeric remaining
+    timestamptz active_started_at
+  }
+  income_records {
+    int id PK
+    text tenant_id FK
+    int task_id FK
+    numeric amount
+    text currency
+    timestamptz created_at
+  }
+  curriculum_files {
+    int id PK
+    text tenant_id FK
+    int course_id FK
+    text name
+    text object_path
+    int size
+    text content_type
+    timestamptz uploaded_at
+  }

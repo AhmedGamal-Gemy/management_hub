@@ -1,0 +1,25 @@
+%% Card 1: Tenancy resolution flow
+%% BACKEND IS PYTHON — FastAPI in backend-python/
+%% Shared helper: backend-python/app/middleware/tenancy.py
+%% Composes with the existing verify_clerk_user dependency in
+%% backend-python/app/middleware/auth.py, and is injected into routes via
+%% Depends() exactly like the legacy Express withOwner() helper.
+
+flowchart TD
+  Browser["Browser + Clerk __session cookie"] --> App["FastAPI app/main.py\nCORSMiddleware, routers under /api"]
+  App --> Auth["Depends verify_clerk_user\nmiddleware/auth.py\nverifies Clerk JWT via JWKS"]
+  Auth --> AuthOk{"sub present?"}
+  AuthOk -- no --> R401["401 Invalid session"]
+  AuthOk -- yes user_xxx --> Resolve["Depends resolve_tenant\nmiddleware/tenancy.py"]
+  Resolve --> CheckMembers["SELECT * FROM tenant_members\nWHERE user_id = :user_id"]
+  CheckMembers -- has rows --> SetTenant["return tenant_id\nsets request.state.tenant_id"]
+  CheckMembers -- no rows --> Dev{"NODE_ENV\n== development?"}
+  Dev -- yes --> AutoCreate["auto-create demo tenant\nINSERT INTO tenants\nINSERT INTO tenant_members"]
+  Dev -- no --> R403["403 No tenant for this user"]
+  AutoCreate --> SetTenant
+  SetTenant --> Scope["All SQLAlchemy queries filtered by tenant_id"]
+  Scope --> Response["Response scoped to one tenant\nUI sees only own rows"]
+
+  style Resolve fill:#2563eb,color:#fff
+  style AutoCreate fill:#059669,color:#fff
+  style Auth fill:#7c3aed,color:#fff
